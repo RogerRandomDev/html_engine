@@ -1,0 +1,16 @@
+.default_object {
+  position: absolute;
+  user-select: none;
+}
+.top_menu {
+  position: fixed;
+  top: 0%;
+  left: 0%;
+  display: flex;
+  min-width: 100vw;
+  min-height: 12.5vh;
+  border-style: solid;
+  border-width: 2px;
+  border-color: black;
+  user-select: none;
+}
