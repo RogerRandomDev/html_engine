@@ -31,15 +31,17 @@ class Node2D extends Node{
     constructor(position=Vector(0,0),Size=Vector(16,16),Name="Node2D",olor=new color(),sprite=null,collide=true){
         super(Name)
         if(collide){collision_objects.push(this)}
-        this.position=position;this.size=Size;;this.color=olor;this.sprite=sprite;
+        this.position=position;this.size=Size;this.color=olor;this.sprite=sprite;
         this.visible=true;
         this.self=document.createElement('div')
         this.self.className="default_object"
-        let n_pos = true_pos(position)
+        let n_pos = this.position;
+        if(past_load){n_pos=true_pos(position)}
         this.self.style.left=n_pos.x+'px';
         this.self.style.top=n_pos.y+'px';
         this.self.style.backgroundColor=olor.get_color();
-        let n_size = true_pos(this.size);
+        let n_size = this.size;
+        if(past_load){n_size = true_pos(this.size);}
         this.self.style.minWidth=n_size.x+'px';
         this.self.style.minHeight=n_size.y+'px';
         document.body.appendChild(this.self)
@@ -47,6 +49,8 @@ class Node2D extends Node{
         this.active=false
         this.me = this
         this.type='Node2D'
+        this.move_to(this.position)
+        this.update_size();
         this.set_as_editor_object()
     }
     hide(){this.visible=false;update_visible()}
@@ -57,7 +61,7 @@ class Node2D extends Node{
         let me = this.me
         this.self.addEventListener('mousedown',function(ev){this.active=true;mouse_offset=Vector(ev.offsetX,ev.offsetY);;selected_object=me})
         this.self.addEventListener('mouseup',function(){this.active=false;selected_object=null})
-        this.self.addEventListener('mouseleave',function(ev){if(!this.active){selected_object=null}})
+        //this.self.addEventListener('mouseleave',function(ev){if(!this.active){selected_object=null}})
     }
     update_size(){
         this.size.y = Math.max(this.size.y,2)
@@ -86,23 +90,52 @@ class Node2D extends Node{
         this.self.style.left = n_pos.x+"px";
     }
     get_data(){
-        return {"type":"Node2D","position":this.position,"Size":this.size,"Name":this.name,"color":this.color,"sprite":this.sprite}
+        return {"type":"Node2D","position":true_pos(this.position),"Size":true_pos(this.size),"Name":this.name,"color":this.color,"sprite":this.sprite}
     }
 }
 class Physics2D extends Node2D{
-    constructor(position=Vector(0,0),Size=Vector(16,16),Name="Node2D",olor=new color(),sprite=null){
+    constructor(position=Vector(0,0),Size=Vector(16,16),Name="Physics2D",olor=new color(),sprite=null,is_update_object=true){
         super(position,Size,Name,olor,sprite)
+        this.friction = 2.75;
+        this.damp=0.75;
         this.type='Physics2D'
         this.velocity = Vector(0.0,0.0)
-        update_object.push(this)
+        this.on_floor=false
+        this.on_wall=0;
+        if(is_update_object){update_object.push(this)}
     }
     update(){
         this.velocity.y += Gravity*delta_time
-        this.velocity.y = Math.min(this.velocity.y,128)
+        this.velocity.y = Math.min(this.velocity.y,368)
         let collisions = collide(this)
         if(collisions[1]<0&&this.velocity.y>0){this.velocity.y=0.05;}
+        if(collisions[1]<0){this.velocity=this.velocity.sub(this.velocity.multiply(delta_time*this.friction))}
+        this.velocity = this.velocity.sub(this.velocity.multiply(delta_time*this.damp))
+        this.on_floor=collisions[1]<0;
+        this.on_wall=collisions[0];
         this.move_by(this.velocity.multiply(delta_time).add(Vector(collisions[0],collisions[1])))
     }
+    get_data(){return {"type":"Physics2D","position":true_pos(this.position),"Size":true_pos(this.size),"Name":this.name,"color":this.color,"sprite":this.sprite}}
+}
+class Player2D extends Physics2D{
+    constructor(position=Vector(0,0),Size=Vector(16,16),Name="Player2D",olor=new color(),sprite=null){
+        super(position,Size,Name,olor,sprite,false)
+        this.type="Player2D";
+        update_object.push(this)
+        this.just_jumped=false
+        this.move_force=new Vector2(256,-256)
+        this.double_jump=false;
+        this.just_jumped=false;
+    }
+    update(){
+        this.double_jump=(this.double_jump||this.on_floor)
+        if(keys_pressed.includes('w')&&(this.on_floor||this.double_jump||this.on_wall!=0)&&!this.just_jumped){this.velocity.y=this.move_force.y;if(!this.on_floor&&!this.on_wall!=0){this.double_jump=false}else if(this.on_wall!=0){this.velocity.x=this.move_force.x*Math.sign(this.on_wall)};this.velocity.x+=this.move_force.x*0.5*(keys_pressed.includes("d")-keys_pressed.includes("a"));this.just_jumped=true}
+        if(!keys_pressed.includes('w')){this.just_jumped=false}
+        if(keys_pressed.includes("a")){this.velocity.x-=this.move_force.x*delta_time}
+        if(keys_pressed.includes("d")){this.velocity.x+=this.move_force.x*delta_time}
+        super.update()
+    }
+    get_data(){return {"type":"Player2D","position":true_pos(this.position),"Size":true_pos(this.size),"Name":this.name,"color":this.color,"sprite":this.sprite}}
 }
 class Text2D extends Node2D{
     constructor(position=Vector(0,0),Size=Vector(16,16),Name="Text2D",olor=new color(),text="empty text"){
@@ -115,11 +148,12 @@ class Text2D extends Node2D{
     update_size(){
         super.update_size()
         let n_Size = true_pos(this.size)
-        let text_size = Math.min(n_Size.x*2.75/this.text.length,n_Size.y*0.85/this.text.split("\n").length)
+        let text_size = (n_Size.x*2.75/this.text.length)
         this.self.style.fontSize=text_size+"px"
     }
     get_data(){
         let data = super.get_data()
+        data['type']="Text2D"
         data['text']=this.text
         return data
     }

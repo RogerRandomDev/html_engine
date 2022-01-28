@@ -12,12 +12,25 @@
     <meta property="og:description" content="">
     <title>Engine</title>
     <link rel="stylesheet" href='./style.css'>
+    <script src="inputs.js" type="text/javascript"></script>
     <script src="objects.js" type="text/javascript"></script>
     <script src="collision.js" type="text/javascript"></script>
     <script src="editor.js" type="text/javascript"></script>
     <script src="loader.js" type="text/javascript"></script>
     <script src="scene.js" type="text/javascript"></script>
+    
 </head>
-<body onload="load_objects();scene_loaded_scene();">
-    <div style="position:fixed;">E:erase selected<br>Lmouse:select<br>Q:create box<br>F:create Physics Object<br>T:create text object<br>Scroll:change scale speed<br>( + / - ):scale x<br>( [ / ] ):scale y</div>
+<body onload="load_objects();scene_loaded_scene();editor_load()">
+    <div style="position:fixed;" class='top_menu'>
+        E:erase selected<br>
+        Lmouse:select<br>
+        Q:create box<br>
+        F:create Physics Object<br>
+        P:create Player Object<br>
+        T:create text object<br>
+        ( ( / ) ):change scale speed<br>
+        ( + / - ):scale x<br>
+        ( [ / ] ):scale y<br>
+        ~:<button id="UpdateToggle" style="background-color: rgb(0,255,0);">Toggle Game Updates</button><br>
+        Scale Speed:<input id="scaler" type="number" value="1" max="16" min="1" style="max-width: 32px;"></div>
 </body>
